@@ -364,7 +364,7 @@ function um_user_ip() {
 					$v = um_user_uploads_uri() . $file;
 				}
 
-				if ( !strstr( $k, 'user_pass' ) && $k != 'g-recaptcha-response' && $k != 'request' ) {
+				if ( !strstr( $k, 'user_pass' ) && ! in_array( $k, array('g-recaptcha-response','request','_wpnonce','_wp_http_referer') ) ) {
 
 					if ( is_array($v) ) {
 						$v = implode(',', $v );
@@ -1055,8 +1055,8 @@ function um_get_option($option_id) {
 	global $ultimatemember;
 	if ( !isset( $ultimatemember->options ) ) return '';
 	$um_options = $ultimatemember->options;
-	if ( isset($um_options[$option_id]) && !empty( $um_options[$option_id] ) )	{
-		return $um_options[$option_id];
+	if ( isset( $um_options[ $option_id ] ) && !empty( $um_options[ $option_id ] ) )	{
+		return apply_filters("um_get_option_filter__{$option_id}", $um_options[ $option_id ] );
 	}
 
 	switch($option_id){
@@ -1131,11 +1131,15 @@ function um_fetch_user( $user_id ) {
 	***/
 	function um_profile( $key ){
 		global $ultimatemember;
-		if (isset( $ultimatemember->user->profile[$key] ) && !empty( $ultimatemember->user->profile[$key] ) ){
-			return $ultimatemember->user->profile[$key];
+		
+		if (isset( $ultimatemember->user->profile[ $key ] ) && !empty( $ultimatemember->user->profile[ $key ] ) ){
+			$value = apply_filters("um_profile_{$key}__filter", $ultimatemember->user->profile[ $key ] );
 		} else {
-			return false;
+			$value = apply_filters("um_profile_{$key}_empty__filter", false );
 		}
+
+		return $value;
+			
 	}
 
 	/***
@@ -1739,4 +1743,75 @@ function um_fetch_user( $user_id ) {
 	        || substr($_SERVER['HTTP_HOST'],0,3) == '10.'
 	        || substr($_SERVER['HTTP_HOST'],0,7) == '192.168') return true;
 	    return false;
+	}
+
+	/**
+	 * Get user host
+	 *
+	 * Returns the webhost this site is using if possible
+	 *
+	 * @since 1.3.68
+	 * @return mixed string $host if detected, false otherwise
+	 */
+	function um_get_host() {
+		$host = false;
+
+		if( defined( 'WPE_APIKEY' ) ) {
+			$host = 'WP Engine';
+		} elseif( defined( 'PAGELYBIN' ) ) {
+			$host = 'Pagely';
+		} elseif( DB_HOST == 'localhost:/tmp/mysql5.sock' ) {
+			$host = 'ICDSoft';
+		} elseif( DB_HOST == 'mysqlv5' ) {
+			$host = 'NetworkSolutions';
+		} elseif( strpos( DB_HOST, 'ipagemysql.com' ) !== false ) {
+			$host = 'iPage';
+		} elseif( strpos( DB_HOST, 'ipowermysql.com' ) !== false ) {
+			$host = 'IPower';
+		} elseif( strpos( DB_HOST, '.gridserver.com' ) !== false ) {
+			$host = 'MediaTemple Grid';
+		} elseif( strpos( DB_HOST, '.pair.com' ) !== false ) {
+			$host = 'pair Networks';
+		} elseif( strpos( DB_HOST, '.stabletransit.com' ) !== false ) {
+			$host = 'Rackspace Cloud';
+		} elseif( strpos( DB_HOST, '.sysfix.eu' ) !== false ) {
+			$host = 'SysFix.eu Power Hosting';
+		} elseif( strpos( $_SERVER['SERVER_NAME'], 'Flywheel' ) !== false ) {
+			$host = 'Flywheel';
+		} else {
+			// Adding a general fallback for data gathering
+			$host = 'DBH: ' . DB_HOST . ', SRV: ' . $_SERVER['SERVER_NAME'];
+		}
+
+		return $host;
+	}
+
+	/**
+	 * Let To Num
+	 *
+	 * Does Size Conversions
+	 *
+	 * @since 1.3.68
+	 * @author Chris Christoff
+	 *
+	 * @param unknown $v
+	 * @return int|string
+	 */
+	function um_let_to_num( $v ) {
+		$l   = substr( $v, -1 );
+		$ret = substr( $v, 0, -1 );
+
+		switch ( strtoupper( $l ) ) {
+			case 'P': // fall-through
+			case 'T': // fall-through
+			case 'G': // fall-through
+			case 'M': // fall-through
+			case 'K': // fall-through
+				$ret *= 1024;
+				break;
+			default:
+				break;
+		}
+
+		return $ret;
 	}

@@ -69,6 +69,10 @@ class UM_Fields {
 		echo '</div>';
 	}
 
+	function disabled_hidden_field( $key, $value ){
+		return '<input type="hidden" name="'.$key.'" value="'.esc_attr( $value ).'"/>';
+	}
+
 	/***
 	***	@update a field globally
 	***/
@@ -347,7 +351,7 @@ class UM_Fields {
 		}
 
 		if ( isset($data['icon']) && $data['icon'] && isset( $this->field_icons ) && $this->field_icons == 'field' ) {
-			$classes .= 'um-iconed';
+			$classes .= 'um-iconed ';
 		}
 
 		if ($add) {
@@ -484,17 +488,24 @@ class UM_Fields {
 		} else {
 
 			if ( !isset( $ultimatemember->form->post_form ) ) {
-
+				
 				if ( um_user( $key ) && $this->editing == true ) {
 
 					if ( strstr($key, 'role_') ) {
 						$key = 'role';
 					}
 
-					if ( um_user( $key ) == $value ) {
+					$um_user_value = um_user( $key );
+
+					if ( $um_user_value == $value ) {
 						return true;
 					}
 
+					if ( is_array( $um_user_value ) && in_array( $value, $um_user_value ) ) {
+						return true;
+					}
+
+					
 				} else {
 
 					if ( isset($data['default']) && $data['default'] == $value ) {
@@ -899,7 +910,8 @@ class UM_Fields {
 		global $ultimatemember;
 
 		$output = null;
-
+		$disabled = '';
+		
 		// get whole field data
 		if ( isset( $data ) && is_array( $data ) ) {
 			$data = $this->get_field($key);
@@ -909,11 +921,16 @@ class UM_Fields {
 		if ( !isset( $data['type'] ) ) return;
 
 		if ( isset( $data['in_group'] ) && $data['in_group'] != '' && $rule != 'group' ) return;
+		
+		if ( $visibility == 'view' && $this->set_mode != 'register' ) return;
 
-		if ( $visibility == 'view' ) return;
+		if ( $visibility == 'view' && $this->set_mode == 'register' ){
+			$disabled = ' disabled="disabled" ';
+		}
 
 		if ( !um_can_view_field( $data ) ) return;
 		if ( !um_can_edit_field( $data ) ) return;
+
 
 		// fields that need to be disabled in edit mode (profile)
 		$arr_restricted_fields = array('user_email','username','user_login','user_password');
@@ -982,9 +999,16 @@ class UM_Fields {
 
 						}
 
-						$output .= '<input '.$disabled.' class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$key.$ultimatemember->form->form_suffix.'" id="'.$key.$ultimatemember->form->form_suffix.'" value="'. htmlspecialchars( $this->field_value( $key, $default, $data ) ) .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'" />
+						$field_name = $key.$ultimatemember->form->form_suffix;
+						$field_value = htmlspecialchars( $this->field_value( $key, $default, $data ) );
+
+						$output .= '<input '.$disabled.' class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$field_name.'" id="'.$field_name.'" value="'. $field_value .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'" />
 
 						</div>';
+                        
+                        if( ! empty( $disabled ) ){
+	                        $output .= $this->disabled_hidden_field( $field_name, $field_value ); 
+	                    }
 
 						if ( $this->is_error($key) ) {
 							$output .= $this->field_error( $this->show_error($key) );
@@ -1010,9 +1034,16 @@ class UM_Fields {
 
 						}
 
-						$output .= '<input '.$disabled.' class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$key.$ultimatemember->form->form_suffix.'" id="'.$key.$ultimatemember->form->form_suffix.'" value="'. htmlspecialchars( $this->field_value( $key, $default, $data ) ) .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'" />
+						$field_name = $key.$ultimatemember->form->form_suffix;
+						$field_value = htmlspecialchars( $this->field_value( $key, $default, $data ) );
+
+						$output .= '<input '.$disabled.' class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$field_name.'" id="'.$field_name.'" value="'. $field_value .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'" />
 
 						</div>';
+                 		
+                 		if( ! empty( $disabled ) ){
+	                        $output .= $this->disabled_hidden_field( $field_name, $field_value ); 
+	                    }
 
 						if ( $this->is_error($key) ) {
 							$output .= $this->field_error( $this->show_error($key) );
@@ -1195,7 +1226,7 @@ class UM_Fields {
 
 						}
 
-						$output .= '<input class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$key.$ultimatemember->form->form_suffix.'" id="'.$key.$ultimatemember->form->form_suffix.'" value="'. $this->field_value( $key, $default, $data ) .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'" />
+						$output .= '<input  '.$disabled.'  class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$key.$ultimatemember->form->form_suffix.'" id="'.$key.$ultimatemember->form->form_suffix.'" value="'. $this->field_value( $key, $default, $data ) .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'" />
 
 						</div>';
 
@@ -1223,7 +1254,7 @@ class UM_Fields {
 
 						}
 
-						$output .= '<input class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$key.$ultimatemember->form->form_suffix.'" id="'.$key.$ultimatemember->form->form_suffix.'" value="'. $this->field_value( $key, $default, $data ) .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'"    data-range="'.$range.'" data-years="'.$years.'" data-years_x="'.$years_x.'" data-disabled_weekdays="'.$disabled_weekdays.'" data-date_min="'.$date_min.'" data-date_max="'.$date_max.'" data-format="'.$js_format.'" data-value="'. $this->field_value( $key, $default, $data ) .'" />
+						$output .= '<input  '.$disabled.'  class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$key.$ultimatemember->form->form_suffix.'" id="'.$key.$ultimatemember->form->form_suffix.'" value="'. $this->field_value( $key, $default, $data ) .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'"    data-range="'.$range.'" data-years="'.$years.'" data-years_x="'.$years_x.'" data-disabled_weekdays="'.$disabled_weekdays.'" data-date_min="'.$date_min.'" data-date_max="'.$date_max.'" data-format="'.$js_format.'" data-value="'. $this->field_value( $key, $default, $data ) .'" />
 
 						</div>';
 
@@ -1251,7 +1282,7 @@ class UM_Fields {
 
 						}
 
-						$output .= '<input class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$key.$ultimatemember->form->form_suffix.'" id="'.$key.$ultimatemember->form->form_suffix.'" value="'. $this->field_value( $key, $default, $data ) .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'"  data-format="'.$js_format.'" data-intervals="'.$intervals.'" data-value="'. $this->field_value( $key, $default, $data ) .'" />
+						$output .= '<input  '.$disabled.'  class="'.$this->get_class($key, $data).'" type="'.$input.'" name="'.$key.$ultimatemember->form->form_suffix.'" id="'.$key.$ultimatemember->form->form_suffix.'" value="'. $this->field_value( $key, $default, $data ) .'" placeholder="'.$placeholder.'" data-validate="'.$validate.'" data-key="'.$key.'"  data-format="'.$js_format.'" data-intervals="'.$intervals.'" data-value="'. $this->field_value( $key, $default, $data ) .'" />
 
 						</div>';
 
@@ -1276,6 +1307,8 @@ class UM_Fields {
 						}
 
 						$output .= '<div class="um-field-area">';
+						$field_name = $key;
+						$field_value = $this->field_value( $key, $default, $data );
 
 						if ( isset( $data['html'] ) && $data['html'] != 0 && $key != "description" ) {
 
@@ -1287,27 +1320,35 @@ class UM_Fields {
 								'editor_height' => $height,
 								'tinymce'=> array(
 									'toolbar1' => 'formatselect,bullist,numlist,bold,italic,underline,forecolor,blockquote,hr,removeformat,link,unlink,undo,redo',
-									'toolbar2' => ''
+									'toolbar2' => '',
 								)
 							);
 
+							if( ! empty( $disabled ) ){
+								$textarea_settings['tinymce']['readonly'] = true;
+							}
+							
 							$textarea_settings = apply_filters('um_form_fields_textarea_settings', $textarea_settings );
 
 							// turn on the output buffer
 							ob_start();
 
 							// echo the editor to the buffer
-							wp_editor( $this->field_value( $key, $default, $data ) , $key, $textarea_settings );
+							wp_editor( $field_value , $key, $textarea_settings );
 
 							// add the contents of the buffer to the output variable
 							$output .=  ob_get_clean();
 
 						}
-						else $output .= '<textarea style="height: '.$height.';" class="'.$this->get_class($key, $data).'" name="'.$key.'" id="'.$key.'" placeholder="'.$placeholder.'">'.$this->field_value( $key, $default, $data ).'</textarea>';
+						else $output .= '<textarea  '.$disabled.'  style="height: '.$height.';" class="'.$this->get_class($key, $data).'" name="'.$key.'" id="'.$key.'" placeholder="'.$placeholder.'">'.$field_value.'</textarea>';
 
 						$output .= '
 						</div>';
 
+						if( ! empty( $disabled ) ){
+	                        $output .= $this->disabled_hidden_field( $field_name, $field_value ); 
+	                    }
+						
 						if ( $this->is_error($key) ) {
 							$output .= $this->field_error( $this->show_error($key) );
 						}
@@ -1544,7 +1585,7 @@ class UM_Fields {
 
 						$output .= '<div class="um-field-area">';
 
-						$output .= '<select name="'.$form_key.'" id="'.$form_key.'" data-validate="'.$validate.'" data-key="'.$key.'" class="'.$this->get_class($key, $data, $class).'" style="width: 100%" data-placeholder="'.$placeholder.'">';
+						$output .= '<select  '.$disabled.' name="'.$form_key.'" id="'.$form_key.'" data-validate="'.$validate.'" data-key="'.$key.'" class="'.$this->get_class($key, $data, $class).'" style="width: 100%" data-placeholder="'.$placeholder.'">';
 
 						if ( isset($options) && $options == 'builtin'){
 							$options = $ultimatemember->builtin->get ( $filter );
@@ -1580,20 +1621,23 @@ class UM_Fields {
 
 						// add an empty option!
 						$output .= '<option value=""></option>';
-                       
+                        
+                        $field_value = '';
+
                        // add options
 						foreach($options as $k => $v) {
 
 							$v = rtrim($v);
 
-							if ( !is_numeric( $k ) && in_array($form_key, array('role') ) ) {
+							$option_value = $v;
+							$um_field_checkbox_item_title = $v;
+							
+
+							if ( ! is_numeric( $k ) && in_array($form_key, array('role') ) ) {
 								$option_value = $k;
-							} else {
-								$option_value = $v;
+								$um_field_checkbox_item_title = $v;
 							}
-
-							$um_field_checkbox_item_title = $option_value;
-
+							
 							if ( isset( $options_pair ) ) {
 								$option_value = $k;
 								$um_field_checkbox_item_title = $v;
@@ -1603,18 +1647,27 @@ class UM_Fields {
     
 							$output .= '<option value="' . $option_value . '" ';
 							
-							if ( $this->is_selected( $form_key, $option_value, $data ) ||  ( !  isset( $options_pair ) && $this->is_selected( $form_key, $v, $data ) ) ) {
+							if ( $this->is_selected( $form_key, $option_value, $data ) ) {
 								$output.= 'selected';
+								$field_value = $option_value;
+							}else if( ! isset( $options_pair ) && $this->is_selected( $form_key, $v, $data ) ){
+								$output.= 'selected';
+								$field_value = $v;
 							}
-
-
+							
 							$output .= '>'.__( $um_field_checkbox_item_title, UM_TEXTDOMAIN).'</option>';
 
+							
 						}
+
+						if( ! empty( $disabled ) ){
+		                        $output .= $this->disabled_hidden_field( $form_key, $field_value ); 
+		                 }
 
 						$output .= '</select>';
 
 						$output .= '</div>';
+
 
 						if ( $this->is_error($form_key) ) {
 							$output .= $this->field_error( $this->show_error($form_key) );
@@ -1640,10 +1693,13 @@ class UM_Fields {
 						$output .= $this->field_label($label, $key, $data);
 						}
 
+						$use_keyword = apply_filters('um_multiselect_option_value', 0, $data['type'] );
+
 						$output .= '<div class="um-field-area">';
 
-						$output .= '<select multiple="multiple" name="'.$key.'[]" id="'.$key.'" data-maxsize="'. $max_selections . '" data-validate="'.$validate.'" data-key="'.$key.'" class="'.$this->get_class($key, $data, $class).'" style="width: 100%" data-placeholder="'.$placeholder.'">';
+						$output .= '<select  '.$disabled.' multiple="multiple" name="'.$key.'[]" id="'.$key.'" data-maxsize="'. $max_selections . '" data-validate="'.$validate.'" data-key="'.$key.'" class="'.$this->get_class($key, $data, $class).' um-user-keyword_'.$use_keyword.'" style="width: 100%" data-placeholder="'.$placeholder.'">';
 
+						
 						if ( isset($options) && $options == 'builtin'){
 							$options = $ultimatemember->builtin->get ( $filter );
 						}
@@ -1660,36 +1716,48 @@ class UM_Fields {
 
 						// add an empty option!
 						$output .= '<option value=""></option>';
-
-						// add options
+						
+						$arr_selected = array();
+                        // add options
 						foreach( $options as $k => $v ) {
 
 							$v = rtrim( $v );
 
-							$use_keyword = apply_filters('um_multiselect_option_value', 0, $data['type'] );
-
-							if ( $use_keyword ) {
+							$um_field_checkbox_item_title = $v;
+							$opt_value = $v;
+							
+							if ( $use_keyword  ) {
+								$um_field_checkbox_item_title = $v;
 								$opt_value = $k;
-							} else {
-								$opt_value = $v;
 							}
 
-							$um_field_checkbox_item_title = $opt_value;
-
+							
 							$opt_value = apply_filters('um_field_non_utf8_value',$opt_value );
     
 							$output .= '<option value="'.$opt_value.'" ';
 							if ( $this->is_selected( $key, $opt_value, $data ) ) {
+								
 								$output .= 'selected';
+								$arr_selected[ $opt_value ] = $opt_value;	
 							}
-							$output .= '>'.__( $um_field_checkbox_item_title ,UM_TEXTDOMAIN).'</option>';
 
+							$output .= '>'.__( $um_field_checkbox_item_title ,UM_TEXTDOMAIN).'</option>';
+							
+						
+			               
 						}
 
 						$output .= '</select>';
 
+						if( ! empty( $disabled ) && ! empty( $arr_selected )  ){
+							foreach( $arr_selected as $item ){
+				               $output .= $this->disabled_hidden_field( $key.'[]',  $item  );
+							}
+			            }
+
 						$output .= '</div>';
 
+						
 						if ( $this->is_error($key) ) {
 							$output .= $this->field_error( $this->show_error( $key ) );
 						}
@@ -1719,7 +1787,7 @@ class UM_Fields {
 						if ( $form_key == 'role' ) {
 
 							global $wpdb;
-							foreach($options as $key => $val ) {
+							foreach($options as $rkey => $val ) {
 								$val = (string) $val;
 								$val = trim( $val );
 								$post_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_status = 'publish' AND post_type = 'um_role' AND post_title = '$val'");
@@ -1733,15 +1801,18 @@ class UM_Fields {
 
 						// add options
 						$i = 0;
+						$field_value = array();
 
 						foreach($options as $k => $v) {
 
 							$v = rtrim($v);
 
+							$um_field_checkbox_item_title = $v;
+							$option_value = $v;
+
 							if ( !is_numeric( $k ) && in_array($form_key, array('role') ) ) {
+								$um_field_checkbox_item_title = $v;
 								$option_value = $k;
-							} else {
-								$option_value = $v;
 							}
 
 							$i++;
@@ -1761,17 +1832,17 @@ class UM_Fields {
 
 							$output .= '<label class="um-field-radio '.$active.' um-field-half '.$col_class.'">';
 
-							$um_field_checkbox_item_title = $option_value;
-
 							$option_value = apply_filters('um_field_non_utf8_value',$option_value );
     
-							$output .= '<input type="radio" name="'.$form_key.'" value="'.$option_value.'" ';
+							$output .= '<input  '.$disabled.' type="radio" name="'.$form_key.'[]" value="'.$option_value.'" ';
 
 							if ( $this->is_radio_checked($key, $option_value, $data) ) {
 								$output.= 'checked';
+								$field_value[ $key ] = $option_value;
 							}
 
 							$output .= ' />';
+						
 							$output .= '<span class="um-field-radio-state"><i class="'.$class.'"></i></span>';
 							$output .= '<span class="um-field-radio-option">'.__( $um_field_checkbox_item_title,UM_TEXTDOMAIN).'</span>';
 							$output .= '</label>';
@@ -1782,6 +1853,12 @@ class UM_Fields {
 
 						}
 
+						if( ! empty( $disabled ) ){
+							foreach( $field_value as $item ){
+			                    $output .= $this->disabled_hidden_field( $form_key , $item );
+			                }
+			            }
+			            
 						$output .= '<div class="um-clear"></div>';
 
 						$output .= '</div>';
@@ -1837,7 +1914,7 @@ class UM_Fields {
 
 							$v = apply_filters('um_field_non_utf8_value', $v );
     
-							$output .= '<input type="checkbox" name="'.$key.'[]" value="'.strip_tags( $v ).'" ';
+							$output .= '<input  '.$disabled.' type="checkbox" name="'.$key.'[]" value="'.strip_tags( $v ).'" ';
 
 							if ( $this->is_selected($key, $v, $data) ) {
 								$output.= 'checked';
@@ -1845,7 +1922,13 @@ class UM_Fields {
 
 							$output .= ' />';
 
+							if( ! empty( $disabled ) &&  $this->is_selected($key, $v, $data) ){
+			                        $output .= $this->disabled_hidden_field( $key.'[]', strip_tags( $v ) ); 
+			                }
+
+							
 							$output .= '<span class="um-field-checkbox-state"><i class="'.$class.'"></i></span>';
+							$um_field_checkbox_item_title = apply_filters("um_field_checkbox_item_title", $um_field_checkbox_item_title , $key, $v, $data );
 							$output .= '<span class="um-field-checkbox-option">'. __( $um_field_checkbox_item_title ,UM_TEXTDOMAIN) .'</span>';
 							$output .= '</label>';
 
@@ -1858,6 +1941,7 @@ class UM_Fields {
 						$output .= '<div class="um-clear"></div>';
 
 						$output .= '</div>';
+
 
 						if ( $this->is_error($key) ) {
 							$output .= $this->field_error( $this->show_error($key) );
